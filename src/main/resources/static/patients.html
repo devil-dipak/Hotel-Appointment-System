@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Patients</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard"><i class="bi bi-hospital"></i> Hospital System</a>
+            <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="doctors.html">Doctors</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="patients.html">Patients</a></li>
+                    <li class="nav-item"><a class="nav-link" href="appointments.html">Appointments</a></li>
+                    <li class="nav-item dropdown" id="userDropdown" style="display:none;">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" id="userNameLink">User</a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile">Profile</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item" id="loginLink"><a class="nav-link" href="/">Login</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Manage Patients</h2>
+            <button class="btn btn-primary" id="addPatientBtn" data-bs-toggle="modal" data-bs-target="#patientModal" onclick="resetPatientForm()">
+                <i class="bi bi-plus-circle"></i> Add Patient
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>DOB</th>
+                        <th>Gender</th>
+                        <th>Address</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="patientTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="patientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="patientModalTitle">Add Patient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="patientForm">
+                        <input type="hidden" id="patientId">
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="patientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="patientEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="patientPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" id="patientDob">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" id="patientGender">
+                                <option value="">Select</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" id="patientAddress" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="savePatient()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        const _user = JSON.parse(localStorage.getItem('user') || '{}');
+        const _role = _user.role || '';
+
+        if (_role === 'PATIENT') {
+            document.body.innerHTML = '<div class="container mt-5"><div class="alert alert-danger">Access denied. Patients cannot view patient records.</div><a href="/dashboard" class="btn btn-primary">Back to Dashboard</a></div>';
+        }
+        if (_role !== 'ADMIN') {
+            document.getElementById('addPatientBtn').style.display = 'none';
+        }
+
+        function loadPatients() {
+            fetch('/api/patients')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('patientTableBody');
+                    const isDoctor = _role === 'DOCTOR';
+                    tbody.innerHTML = data.map(p => `
+                        <tr>
+                            <td>${p.id}</td>
+                            <td>${p.name}</td>
+                            <td>${isDoctor ? '-' : p.email}</td>
+                            <td>${isDoctor ? '-' : (p.phone || '-')}</td>
+                            <td>${p.dateOfBirth || '-'}</td>
+                            <td>${p.gender || '-'}</td>
+                            <td>${isDoctor ? '-' : (p.address || '-')}</td>
+                            <td>
+                                ${_role === 'ADMIN' ? `
+                                <button class="btn btn-sm btn-warning me-1" onclick="editPatient(${p.id})"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="deletePatient(${p.id})"><i class="bi bi-trash"></i></button>
+                                ` : '<span class="text-muted">-</span>'}
+                            </td>
+                        </tr>
+                    `).join('');
+                });
+        }
+
+        function resetPatientForm() {
+            document.getElementById('patientId').value = '';
+            document.getElementById('patientForm').reset();
+            document.getElementById('patientModalTitle').textContent = 'Add Patient';
+        }
+
+        function editPatient(id) {
+            if (_role !== 'ADMIN') return;
+            fetch(`/api/patients/${id}`)
+                .then(r => r.json())
+                .then(p => {
+                    document.getElementById('patientId').value = p.id;
+                    document.getElementById('patientName').value = p.name;
+                    document.getElementById('patientEmail').value = p.email;
+                    document.getElementById('patientPhone').value = p.phone || '';
+                    document.getElementById('patientDob').value = p.dateOfBirth || '';
+                    document.getElementById('patientGender').value = p.gender || '';
+                    document.getElementById('patientAddress').value = p.address || '';
+                    document.getElementById('patientModalTitle').textContent = 'Edit Patient';
+                    new bootstrap.Modal(document.getElementById('patientModal')).show();
+                });
+        }
+
+        function savePatient() {
+            const id = document.getElementById('patientId').value;
+            const patient = {
+                name: document.getElementById('patientName').value,
+                email: document.getElementById('patientEmail').value,
+                phone: document.getElementById('patientPhone').value,
+                dateOfBirth: document.getElementById('patientDob').value || null,
+                gender: document.getElementById('patientGender').value,
+                address: document.getElementById('patientAddress').value
+            };
+            const url = id ? `/api/patients/${id}` : '/api/patients';
+            const method = id ? 'PUT' : 'POST';
+            fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(patient) })
+                .then(() => { bootstrap.Modal.getInstance(document.getElementById('patientModal')).hide(); loadPatients(); });
+        }
+
+        function deletePatient(id) {
+            if (_role !== 'ADMIN') return;
+            if (confirm('Delete this patient?')) {
+                fetch(`/api/patients/${id}`, {method: 'DELETE'})
+                    .then(() => loadPatients());
+            }
+        }
+
+        loadPatients();
+    </script>
+</body>
+</html>

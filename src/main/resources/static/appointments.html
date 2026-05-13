@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Appointments</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard"><i class="bi bi-hospital"></i> Hospital System</a>
+            <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="doctors.html">Doctors</a></li>
+                    <li class="nav-item"><a class="nav-link" href="patients.html">Patients</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="appointments.html">Appointments</a></li>
+                    <li class="nav-item dropdown" id="userDropdown" style="display:none;">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" id="userNameLink">User</a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile">Profile</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item" id="loginLink"><a class="nav-link" href="/">Login</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Manage Appointments</h2>
+            <div>
+                <a class="btn btn-success me-2" href="/api/appointments/export/pdf"><i class="bi bi-file-pdf"></i> Export PDF</a>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#appointmentModal" onclick="resetAppointmentForm()">
+                    <i class="bi bi-plus-circle"></i> Book Appointment
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" id="filterDate">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="filterStatus">
+                            <option value="">All</option>
+                            <option value="SCHEDULED">Scheduled</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Doctor</label>
+                        <select class="form-select" id="filterDoctor">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary w-100" onclick="applyFilter()"><i class="bi bi-search"></i> Search</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Doctor</th>
+                        <th>Patient</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="appointmentTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="appointmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="appointmentModalTitle">Book Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="appointmentForm">
+                        <input type="hidden" id="appointmentId">
+                        <div class="mb-3">
+                            <label class="form-label">Doctor</label>
+                            <select class="form-select" id="appointmentDoctor" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Patient</label>
+                            <select class="form-select" id="appointmentPatient" required></select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date</label>
+                                <input type="date" class="form-control" id="appointmentDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Time</label>
+                                <input type="time" class="form-control" id="appointmentTime" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Reason</label>
+                            <textarea class="form-control" id="appointmentReason" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3" id="statusField" style="display:none;">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="appointmentStatus">
+                                <option value="SCHEDULED">Scheduled</option>
+                                <option value="COMPLETED">Completed</option>
+                                <option value="CANCELLED">Cancelled</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAppointment()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        const _user = JSON.parse(localStorage.getItem('user') || '{}');
+        const _role = _user.role || '';
+        let _myDoctorId = null;
+        let _myPatientId = null;
+
+        function loadFilterDoctors() {
+            return fetch('/api/doctors').then(r => r.json()).then(data => {
+                const sel = document.getElementById('filterDoctor');
+                sel.innerHTML = '<option value="">All</option>' +
+                    data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            });
+        }
+
+        function loadDoctorsSelect() {
+            return fetch('/api/doctors').then(r => r.json()).then(data => {
+                const sel = document.getElementById('appointmentDoctor');
+                if (_role === 'DOCTOR' && _myDoctorId) {
+                    const d = data.find(x => x.id === _myDoctorId);
+                    sel.innerHTML = d ? `<option value="${d.id}">${d.name} (${d.specialization})</option>` : '<option value="">Not found</option>';
+                    sel.disabled = true;
+                } else {
+                    sel.innerHTML = '<option value="">Select Doctor</option>' +
+                        data.map(d => `<option value="${d.id}">${d.name} (${d.specialization})</option>`).join('');
+                    sel.disabled = false;
+                }
+                const filterSel = document.getElementById('filterDoctor');
+                if (filterSel.options.length <= 1) {
+                    filterSel.innerHTML = '<option value="">All</option>' +
+                        data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                }
+            });
+        }
+
+        function loadPatientsSelect() {
+            const sel = document.getElementById('appointmentPatient');
+            if (_role === 'PATIENT' && _myPatientId) {
+                return fetch(`/api/patients/${_myPatientId}`).then(r => r.json()).then(p => {
+                    sel.innerHTML = `<option value="${p.id}">${p.name} (${p.email})</option>`;
+                    sel.disabled = true;
+                });
+            }
+            return fetch('/api/patients').then(r => r.json()).then(data => {
+                sel.innerHTML = '<option value="">Select Patient</option>' +
+                    data.map(p => `<option value="${p.id}">${p.name} (${p.email})</option>`).join('');
+                sel.disabled = false;
+            });
+        }
+
+        function applyFilter() {
+            const date = document.getElementById('filterDate').value;
+            const status = document.getElementById('filterStatus').value;
+            const doctorId = document.getElementById('filterDoctor').value;
+            if (_role === 'DOCTOR' && _myDoctorId) {
+                loadAppointments('/api/appointments/doctor/' + _myDoctorId);
+                return;
+            }
+            if (_role === 'PATIENT' && _myPatientId) {
+                loadAppointments('/api/appointments/patient/' + _myPatientId);
+                return;
+            }
+            let url = '/api/appointments/search?';
+            if (date) url += 'date=' + date + '&';
+            if (status) url += 'status=' + status + '&';
+            if (doctorId) url += 'doctorId=' + doctorId + '&';
+            loadAppointments(url);
+        }
+
+        function loadAppointments(url) {
+            fetch(url || '/api/appointments')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('appointmentTableBody');
+                    const canEdit = _role === 'ADMIN';
+                    tbody.innerHTML = data.map(a => `
+                        <tr>
+                            <td>${a.id}</td>
+                            <td>${a.doctor?.name || '-'}</td>
+                            <td>${a.patient?.name || '-'}</td>
+                            <td>${a.appointmentDate}</td>
+                            <td>${a.appointmentTime}</td>
+                            <td>${a.reason || '-'}</td>
+                            <td><span class="badge ${a.status === 'SCHEDULED' ? 'bg-warning' : a.status === 'COMPLETED' ? 'bg-success' : 'bg-danger'}">${a.status}</span></td>
+                            <td>
+                                ${canEdit ? `<button class="btn btn-sm btn-warning me-1" onclick="editAppointment(${a.id})"><i class="bi bi-pencil"></i></button>` : ''}
+                                ${a.status === 'SCHEDULED' && canEdit ? `<button class="btn btn-sm btn-success me-1" onclick="completeAppointment(${a.id})"><i class="bi bi-check-lg"></i></button>
+                                <button class="btn btn-sm btn-danger me-1" onclick="cancelAppointment(${a.id})"><i class="bi bi-x-lg"></i></button>` : ''}
+                                ${canEdit ? `<button class="btn btn-sm btn-danger" onclick="deleteAppointment(${a.id})"><i class="bi bi-trash"></i></button>` : '<span class="text-muted">-</span>'}
+                            </td>
+                        </tr>
+                    `).join('');
+                });
+        }
+
+        function resetAppointmentForm() {
+            document.getElementById('appointmentId').value = '';
+            document.getElementById('appointmentForm').reset();
+            document.getElementById('appointmentModalTitle').textContent = 'Book Appointment';
+            document.getElementById('statusField').style.display = 'none';
+            if (_role === 'PATIENT' || _role === 'DOCTOR') {
+                document.getElementById('appointmentModalTitle').textContent = 'Book Appointment';
+            }
+            loadDoctorsSelect();
+            loadPatientsSelect();
+        }
+
+        function editAppointment(id) {
+            if (_role !== 'ADMIN') return;
+            loadDoctorsSelect().then(() => loadPatientsSelect()).then(() => {
+                fetch(`/api/appointments/${id}`)
+                    .then(r => r.json())
+                    .then(a => {
+                        document.getElementById('appointmentId').value = a.id;
+                        document.getElementById('appointmentDoctor').value = a.doctor?.id || '';
+                        document.getElementById('appointmentPatient').value = a.patient?.id || '';
+                        document.getElementById('appointmentDate').value = a.appointmentDate;
+                        document.getElementById('appointmentTime').value = a.appointmentTime;
+                        document.getElementById('appointmentReason').value = a.reason || '';
+                        document.getElementById('appointmentStatus').value = a.status;
+                        document.getElementById('statusField').style.display = 'block';
+                        document.getElementById('appointmentModalTitle').textContent = 'Edit Appointment';
+                        new bootstrap.Modal(document.getElementById('appointmentModal')).show();
+                    });
+            });
+        }
+
+        function saveAppointment() {
+            const id = document.getElementById('appointmentId').value;
+            const doctorId = parseInt(document.getElementById('appointmentDoctor').value);
+            const patientId = parseInt(document.getElementById('appointmentPatient').value);
+            if (!doctorId || !patientId) { showAlert('Please select doctor and patient'); return; }
+            const appointment = {
+                doctor: { id: doctorId },
+                patient: { id: patientId },
+                appointmentDate: document.getElementById('appointmentDate').value,
+                appointmentTime: document.getElementById('appointmentTime').value,
+                reason: document.getElementById('appointmentReason').value,
+                status: document.getElementById('appointmentStatus').value || 'SCHEDULED'
+            };
+            const url = id ? `/api/appointments/${id}` : '/api/appointments';
+            const method = id ? 'PUT' : 'POST';
+            fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(appointment) })
+                .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.error || 'Save failed'); }))
+                .then(() => { bootstrap.Modal.getInstance(document.getElementById('appointmentModal')).hide(); loadAppointments(); })
+                .catch(e => showAlert(e.message));
+        }
+
+        function deleteAppointment(id) {
+            if (_role !== 'ADMIN') return;
+            if (confirm('Delete this appointment?')) {
+                fetch(`/api/appointments/${id}`, {method: 'DELETE'})
+                    .then(() => loadAppointments());
+            }
+        }
+
+        function completeAppointment(id) {
+            if (_role !== 'ADMIN') return;
+            fetch(`/api/appointments/${id}/complete`, {method: 'PUT'})
+                .then(() => loadAppointments());
+        }
+
+        function cancelAppointment(id) {
+            if (_role !== 'ADMIN') return;
+            fetch(`/api/appointments/${id}/cancel`, {method: 'PUT'})
+                .then(() => loadAppointments());
+        }
+
+        if (_role === 'DOCTOR') {
+            fetch(`/api/doctors/byEmail?email=${encodeURIComponent(_user.email)}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(d => { if (d) { _myDoctorId = d.id; loadAppointments('/api/appointments/doctor/' + d.id); } });
+        } else if (_role === 'PATIENT') {
+            fetch(`/api/patients/byEmail?email=${encodeURIComponent(_user.email)}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(p => { if (p) { _myPatientId = p.id; loadAppointments('/api/appointments/patient/' + p.id); } });
+        } else {
+            loadAppointments();
+        }
+    </script>
+</body>
+</html>
